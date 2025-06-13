@@ -16,24 +16,18 @@ func main() {
 	injector := do.New()
 
 	// データベース接続を初期化してDIコンテナに登録
-	db, err := repository.NewDB()
-	if err != nil {
-		log.Fatalf("Failed to initialize database: %v", err)
-	}
-	do.Provide[*repository.DB](injector, func(i *do.Injector) (*repository.DB, error) {
-		return db, nil
+	do.Provide(injector, func(i *do.Injector) (*repository.DB, error) {
+		return repository.NewDB()
 	})
 
 	// リポジトリをDIコンテナに登録
-	do.Provide[repository.ProductRepository](injector, func(i *do.Injector) (repository.ProductRepository, error) {
-		db := do.MustInvoke[*repository.DB](i)
-		return repository.NewProductRepository(db), nil
+	do.Provide(injector, func(i *do.Injector) (repository.ProductRepository, error) {
+		return repository.NewProductRepository(injector), nil
 	})
 
 	// ハンドラーをDIコンテナに登録
-	do.Provide[handler.ProductHandler](injector, func(i *do.Injector) (handler.ProductHandler, error) {
-		productRepo := do.MustInvoke[repository.ProductRepository](i)
-		return handler.NewProductHandler(productRepo), nil
+	do.Provide(injector, func(i *do.Injector) (handler.ProductHandler, error) {
+		return handler.NewProductHandler(injector), nil
 	})
 
 	// DIコンテナからハンドラーを取得

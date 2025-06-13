@@ -7,7 +7,6 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
-	"github.com/samber/do"
 )
 
 // DB はデータベース接続を管理する構造体です
@@ -40,19 +39,6 @@ func NewDB() (*DB, error) {
 
 	log.Println("Connected to database successfully")
 	return &DB{db}, nil
-}
-
-// init はパッケージの初期化時に実行されます
-func init() {
-	// グローバルインジェクターが初期化されていない場合は初期化
-	if do.DefaultInjector == nil {
-		do.DefaultInjector = do.New()
-	}
-
-	// DBをDIコンテナに登録
-	do.Provide[*DB](do.DefaultInjector, func(i *do.Injector) (*DB, error) {
-		return NewDB()
-	})
 }
 
 // getEnv は環境変数の値を取得し、設定されていない場合はデフォルト値を返します

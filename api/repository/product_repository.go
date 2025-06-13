@@ -25,22 +25,8 @@ type productRepository struct {
 }
 
 // NewProductRepository は新しい商品リポジトリを作成します
-func NewProductRepository(db *DB) ProductRepository {
-	return &productRepository{db: db}
-}
-
-// init はパッケージの初期化時に実行されます
-func init() {
-	// グローバルインジェクターが初期化されていない場合は初期化
-	if do.DefaultInjector == nil {
-		do.DefaultInjector = do.New()
-	}
-
-	// ProductRepositoryをDIコンテナに登録
-	do.Provide[ProductRepository](do.DefaultInjector, func(i *do.Injector) (ProductRepository, error) {
-		db := do.MustInvoke[*DB](i)
-		return NewProductRepository(db), nil
-	})
+func NewProductRepository(injector *do.Injector) ProductRepository {
+	return &productRepository{db: do.MustInvoke[*DB](injector)}
 }
 
 // FindByID は指定されたIDの商品を取得します

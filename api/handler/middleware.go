@@ -22,20 +22,6 @@ func (g *UUIDRequestIDGenerator) Generate() string {
 	return uuid.New().String()
 }
 
-// init はパッケージの初期化時に実行されます
-func init() {
-	// グローバルインジェクターを初期化
-	injector := do.New()
-
-	// RequestIDGeneratorを登録
-	do.Provide[RequestIDGenerator](injector, func(i *do.Injector) (RequestIDGenerator, error) {
-		return &UUIDRequestIDGenerator{}, nil
-	})
-
-	// グローバルインジェクターを設定
-	do.DefaultInjector = injector
-}
-
 // IDInjector はリクエストIDを注入するミドルウェアです
 func IDInjector() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
