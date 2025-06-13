@@ -16,7 +16,7 @@ type ProductRepository interface {
 	FindByIDWithLock(tx *sql.Tx, id string) (*model.Product, error)
 	Update(tx *sql.Tx, product *model.Product) error
 	Create(tx *sql.Tx, product *model.Product) error
-	ProcessProduct(id string, stock int) error
+	ProcessProduct(id string, stock int) (string, error)
 }
 
 // productRepository は商品リポジトリの実装です
@@ -111,11 +111,11 @@ func (r *productRepository) Create(tx *sql.Tx, product *model.Product) error {
 }
 
 // ProcessProduct は商品の在庫を処理します（トランザクション処理のサンプル）
-func (r *productRepository) ProcessProduct(id string, stockChange int) error {
+func (r *productRepository) ProcessProduct(id string, stockChange int) (string, error) {
 	// トランザクションを開始
 	tx, err := r.db.Begin()
 	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
+		return "", fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer func() {
 		if err != nil {
@@ -129,9 +129,10 @@ func (r *productRepository) ProcessProduct(id string, stockChange int) error {
 	// 商品をロックして取得
 	product, err := r.FindByIDWithLock(tx, id)
 	if err != nil {
-		return err
+		return "", err
 	}
 
+	var msg string
 	// 商品が存在しない場合は新規作成
 	if product == nil {
 		newProduct := &model.Product{
@@ -141,22 +142,22 @@ func (r *productRepository) ProcessProduct(id string, stockChange int) error {
 			Price: 1000.0,
 		}
 		if err = r.Create(tx, newProduct); err != nil {
-			return err
+			return "", err
 		}
-		log.Printf("Created new product with ID: %s, Stock: %d", id, stockChange)
+		msg = fmt.Sprintf("Created new product with ID: %s, Stock: %d", id, stockChange)
 	} else {
 		// 商品が存在する場合は在庫を更新
 		product.Stock += stockChange
 		if err = r.Update(tx, product); err != nil {
-			return err
+			return "", err
 		}
-		log.Printf("Updated product with ID: %s, New Stock: %d", id, product.Stock)
+		msg = fmt.Sprintf("Updated product with ID: %s, New Stock: %d", id, product.Stock)
 	}
 
 	// トランザクションをコミット
 	if err = tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
+		return "", fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
-	return nil
+	return msg, nil
 }
