@@ -1,4 +1,5 @@
-FROM golang:1.21-alpine
+# ビルドステージ
+FROM golang:1.24.2-alpine AS builder
 
 WORKDIR /app
 
@@ -8,8 +9,19 @@ RUN go mod download
 
 # アプリケーションのビルド
 COPY . .
-RUN go build -o main ./cmd/api
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/api
+
+# 実行ステージ
+FROM gcr.io/distroless/static:nonroot
+
+WORKDIR /
+
+# ビルドステージからバイナリをコピー
+COPY --from=builder /app/main /main
+
+# 非rootユーザーとして実行
+USER nonroot:nonroot
 
 # 実行
 EXPOSE 8080
-CMD ["./main"]
+ENTRYPOINT ["/main"]
