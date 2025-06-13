@@ -6,22 +6,38 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/samber/do"
 	"github.com/toumakido/transaction/api/handler"
 	"github.com/toumakido/transaction/api/repository"
 )
 
 func main() {
-	// データベース接続を初期化
+	// DIコンテナを初期化
+	injector := do.New()
+
+	// データベース接続を初期化してDIコンテナに登録
 	db, err := repository.NewDB()
 	if err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
+	do.Provide[*repository.DB](injector, func(i *do.Injector) (*repository.DB, error) {
+		return db, nil
+	})
 
-	// リポジトリを初期化
-	productRepo := repository.NewProductRepository(db)
+	// リポジトリをDIコンテナに登録
+	do.Provide[repository.ProductRepository](injector, func(i *do.Injector) (repository.ProductRepository, error) {
+		db := do.MustInvoke[*repository.DB](i)
+		return repository.NewProductRepository(db), nil
+	})
 
-	// ハンドラーを初期化
-	productHandler := handler.NewProductHandler(productRepo)
+	// ハンドラーをDIコンテナに登録
+	do.Provide[handler.ProductHandler](injector, func(i *do.Injector) (handler.ProductHandler, error) {
+		productRepo := do.MustInvoke[repository.ProductRepository](i)
+		return handler.NewProductHandler(productRepo), nil
+	})
+
+	// DIコンテナからハンドラーを取得
+	productHandler := do.MustInvoke[handler.ProductHandler](injector)
 
 	// Echoインスタンスを作成
 	e := echo.New()

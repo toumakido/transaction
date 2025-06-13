@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
+	"github.com/samber/do"
 	"github.com/toumakido/transaction/api/model"
 	"github.com/toumakido/transaction/api/repository"
 )
@@ -26,6 +27,20 @@ func NewProductHandler(productRepo repository.ProductRepository) ProductHandler 
 	return &productHandler{
 		productRepo: productRepo,
 	}
+}
+
+// init はパッケージの初期化時に実行されます
+func init() {
+	// グローバルインジェクターが初期化されていない場合は初期化
+	if do.DefaultInjector == nil {
+		do.DefaultInjector = do.New()
+	}
+
+	// ProductHandlerをDIコンテナに登録
+	do.Provide[ProductHandler](do.DefaultInjector, func(i *do.Injector) (ProductHandler, error) {
+		productRepo := do.MustInvoke[repository.ProductRepository](i)
+		return NewProductHandler(productRepo), nil
+	})
 }
 
 // GetProduct は指定されたIDの商品を取得します

@@ -3,17 +3,48 @@ package handler
 import (
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
+	"github.com/samber/do"
 )
 
 // RequestIDKey はリクエストIDのキーです
 const RequestIDKey = "request_id"
 
+// RequestIDGenerator はリクエストIDを生成するインターフェースです
+type RequestIDGenerator interface {
+	Generate() string
+}
+
+// UUIDRequestIDGenerator はUUIDを使用してリクエストIDを生成する実装です
+type UUIDRequestIDGenerator struct{}
+
+// Generate は新しいリクエストIDを生成します
+func (g *UUIDRequestIDGenerator) Generate() string {
+	return uuid.New().String()
+}
+
+// init はパッケージの初期化時に実行されます
+func init() {
+	// グローバルインジェクターを初期化
+	injector := do.New()
+
+	// RequestIDGeneratorを登録
+	do.Provide[RequestIDGenerator](injector, func(i *do.Injector) (RequestIDGenerator, error) {
+		return &UUIDRequestIDGenerator{}, nil
+	})
+
+	// グローバルインジェクターを設定
+	do.DefaultInjector = injector
+}
+
 // IDInjector はリクエストIDを注入するミドルウェアです
 func IDInjector() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			// 新しいUUIDを生成
-			requestID := uuid.New().String()
+			// DIコンテナからRequestIDGeneratorを取得
+			generator := do.MustInvoke[RequestIDGenerator](do.DefaultInjector)
+
+			// リクエストIDを生成
+			requestID := generator.Generate()
 
 			// コンテキストにリクエストIDを設定
 			c.Set(RequestIDKey, requestID)
