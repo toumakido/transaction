@@ -68,7 +68,8 @@ func (h *productHandler) ProcessProduct(c echo.Context) error {
 	}
 
 	// トランザクション処理を実行
-	if err := h.productRepo.ProcessProduct(id, stockChange); err != nil {
+	msg, err := h.productRepo.ProcessProduct(id, stockChange)
+	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 
@@ -79,5 +80,13 @@ func (h *productHandler) ProcessProduct(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 
-	return c.JSON(http.StatusOK, product)
+	return c.JSON(http.StatusOK, ProcessProductResponse{
+		Product: *product,
+		Message: msg,
+	})
+}
+
+type ProcessProductResponse struct {
+	model.Product
+	Message string `json:"message"`
 }
