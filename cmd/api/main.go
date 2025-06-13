@@ -30,6 +30,11 @@ func main() {
 		return handler.NewProductHandler(injector), nil
 	})
 
+	// リクエストIDジェネレーターをDIコンテナに登録
+	do.Provide(injector, func(i *do.Injector) (handler.RequestIDGenerator, error) {
+		return &handler.UUIDRequestIDGenerator{}, nil
+	})
+
 	// DIコンテナからハンドラーを取得
 	productHandler := do.MustInvoke[handler.ProductHandler](injector)
 
@@ -40,7 +45,7 @@ func main() {
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORS())
-	e.Use(handler.IDInjector()) // リクエストIDインジェクター
+	e.Use(handler.IDInjector(injector)) // リクエストIDインジェクター
 
 	// ルートを設定
 	e.GET("/", func(c echo.Context) error {

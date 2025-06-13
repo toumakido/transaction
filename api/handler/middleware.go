@@ -23,11 +23,11 @@ func (g *UUIDRequestIDGenerator) Generate() string {
 }
 
 // IDInjector はリクエストIDを注入するミドルウェアです
-func IDInjector() echo.MiddlewareFunc {
+func IDInjector(injector *do.Injector) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			// DIコンテナからRequestIDGeneratorを取得
-			generator := do.MustInvoke[RequestIDGenerator](do.DefaultInjector)
+			generator := do.MustInvoke[RequestIDGenerator](injector)
 
 			// リクエストIDを生成
 			requestID := generator.Generate()
